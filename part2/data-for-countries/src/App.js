@@ -1,23 +1,71 @@
-import logo from './logo.svg';
-import './App.css';
+import axios from 'axios';
+import { useState, useEffect } from 'react';
+import Filter from './components/Filter';
+import Country from './components/Country';
 
 function App() {
+  const [filter, setFilter] = useState('');
+  const [countries, setCountries] = useState([]);
+  const [filteredCountries, setFilteredCountries] = useState([]);
+
+  useEffect(() => {
+    axios.get('https://restcountries.com/v3.1/all').then((response) => {
+      setCountries(
+        response.data.map((data) => {
+          return {
+            name: data.name.common,
+            capital: data.capital === undefined ? '' : data.capital[0],
+            area: data.area,
+            languages: data.languages,
+            flag: data.flags.svg,
+          };
+        })
+      );
+    });
+  }, []);
+
+  const handleFilterChange = (event) => {
+    setFilter(event.target.value);
+
+    if (event.target.value.trim() === '') {
+      setFilteredCountries([]);
+    } else {
+      setFilteredCountries(
+        countries.filter((country) => {
+          return country.name
+            .toLowerCase()
+            .includes(event.target.value.toLowerCase());
+        })
+      );
+    }
+  };
+
+  const handleShowClick = (event) => {
+    console.log(event.target);
+  };
+
+  let display = '';
+  if (filteredCountries.length === 0) {
+    display = '';
+  } else if (filteredCountries.length > 10) {
+    display = <p>Too many matches, specify another filter</p>;
+  } else if (filteredCountries.length === 1) {
+    display = <Country country={filteredCountries[0]} />;
+  } else if (filteredCountries.length < 10) {
+    display = (
+      <ul style={({ padding: 0 }, { listStyle: 0 })}>
+        {filteredCountries.map((country) => (
+          <li key={country.name}>{country.name}</li>
+        ))}
+      </ul>
+    );
+  }
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <Filter onChange={handleFilterChange} value={filter} />
+      <button onClick={handleShowClick}>click me</button>
+      {display}
     </div>
   );
 }
