@@ -7,6 +7,7 @@ function App() {
   const [filter, setFilter] = useState('');
   const [countries, setCountries] = useState([]);
   const [filteredCountries, setFilteredCountries] = useState([]);
+  const [show, setShow] = useState([]);
 
   useEffect(() => {
     axios.get('https://restcountries.com/v3.1/all').then((response) => {
@@ -44,6 +45,8 @@ function App() {
     console.log(event.target);
   };
 
+
+
   let display = '';
   if (filteredCountries.length === 0) {
     display = '';
@@ -52,10 +55,17 @@ function App() {
   } else if (filteredCountries.length === 1) {
     display = <Country country={filteredCountries[0]} />;
   } else if (filteredCountries.length < 10) {
+    
     display = (
-      <ul style={({ padding: 0 }, { listStyle: 0 })}>
+      <ul style={({ listStyle: 'none' }, { paddingLeft: '0' })}>
         {filteredCountries.map((country) => (
-          <li key={country.name}>{country.name}</li>
+          <li key={country.name}>
+            <Country
+              country={country}
+              show={false}
+              onClick={handleButtonClick}
+            />
+          </li>
         ))}
       </ul>
     );
