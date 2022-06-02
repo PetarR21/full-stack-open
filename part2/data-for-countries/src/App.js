@@ -7,7 +7,9 @@ function App() {
   const [filter, setFilter] = useState('');
   const [countries, setCountries] = useState([]);
   const [filteredCountries, setFilteredCountries] = useState([]);
-  const [show, setShow] = useState([]);
+  const [showCountries, setShowCountries] = useState([]);
+  const [weather, setWeather] = useState([]);
+  
 
   useEffect(() => {
     axios.get('https://restcountries.com/v3.1/all').then((response) => {
@@ -31,21 +33,31 @@ function App() {
     if (event.target.value.trim() === '') {
       setFilteredCountries([]);
     } else {
-      setFilteredCountries(
-        countries.filter((country) => {
-          return country.name
-            .toLowerCase()
-            .includes(event.target.value.toLowerCase());
+      let arr = countries.filter((country) => {
+        return country.name
+          .toLowerCase()
+          .includes(event.target.value.toLowerCase());
+      });
+      setFilteredCountries(arr);
+      setShowCountries(
+        arr.map((country) => {
+          return { name: country.name, show: false };
         })
       );
     }
   };
 
-  const handleShowClick = (event) => {
-    console.log(event.target);
+  console.log(weather);
+  const handleButtonClick = (event) => {
+    const clikedID = event.target.id;
+    const arr = [...showCountries];
+    arr[clikedID].show = true;
+    setShowCountries(arr);
   };
 
-
+  filteredCountries.map((country) => {
+    return { name: country.name, showBool: false };
+  });
 
   let display = '';
   if (filteredCountries.length === 0) {
@@ -53,17 +65,18 @@ function App() {
   } else if (filteredCountries.length > 10) {
     display = <p>Too many matches, specify another filter</p>;
   } else if (filteredCountries.length === 1) {
-    display = <Country country={filteredCountries[0]} />;
+    console.log(weather);
+    display = <Country country={filteredCountries[0]} show={true} />;
   } else if (filteredCountries.length < 10) {
-    
     display = (
       <ul style={({ listStyle: 'none' }, { paddingLeft: '0' })}>
-        {filteredCountries.map((country) => (
+        {filteredCountries.map((country, i) => (
           <li key={country.name}>
             <Country
               country={country}
-              show={false}
               onClick={handleButtonClick}
+              show={showCountries[i].show}
+              id={i}
             />
           </li>
         ))}
@@ -73,8 +86,13 @@ function App() {
 
   return (
     <div>
-      <Filter onChange={handleFilterChange} value={filter} />
-      <button onClick={handleShowClick}>click me</button>
+      <Filter
+        onChange={(event) => {
+          handleFilterChange(event);
+        }}
+        value={filter}
+      />
+
       {display}
     </div>
   );
