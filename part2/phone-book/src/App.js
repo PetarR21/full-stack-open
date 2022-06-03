@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import Persons from './components/Persons';
 import Filter from './components/Filter';
 import PersonForm from './components/PersonForm';
-import axios from 'axios';
+import personService from './services/person';
+import person from './services/person';
 
 const App = () => {
   const [persons, setPersons] = useState([]);
@@ -12,8 +13,8 @@ const App = () => {
 
   //get persons list from server
   useEffect(() => {
-    axios.get('http://localhost:3001/persons').then((response) => {
-      setPersons(response.data);
+    personService.getAll().then((initialPersons) => {
+      setPersons(initialPersons);
     });
   }, []);
 
@@ -26,25 +27,38 @@ const App = () => {
 
     let names = persons.map((person) => person.name);
     if (names.includes(newName)) {
-      alert(`${newName} is already added to phonebook`);
-      return;
-    }
-
-    let numbers = persons.map((person) => person.number);
-    if (numbers.includes(newNumber)) {
-      alert(`number ${newNumber} is already added to phonebook`);
-      return;
+      if (
+        window.confirm(
+          `${newName}is already added to phonebook, replace the new number with new one?`
+        )
+      ) {
+        updateUserNumber(persons.find((person) => person.name === newName));
+        return;
+      }
     }
 
     let newPersonObject = {
       name: newName,
       number: newNumber,
-      id: persons.length + 1,
     };
 
-    setPersons(persons.concat(newPersonObject));
-    setNewName('');
-    setNewNumber('');
+    personService.create(newPersonObject).then((returnedPerson) => {
+      setPersons(persons.concat(returnedPerson));
+      setNewName('');
+      setNewNumber('');
+    });
+  };
+
+  const updateUserNumber = (person) => {
+    personService
+      .update(person.id, { ...person, number: newNumber })
+      .then((returnedPerson) => {
+        setPersons(
+          persons.map((person) =>
+            person.id === returnedPerson.id ? returnedPerson : person
+          )
+        );
+      });
   };
 
   const handleNameChange = (event) => {
@@ -57,6 +71,15 @@ const App = () => {
 
   const handleFilterChange = (event) => {
     setFilter(event.target.value);
+  };
+
+  const deletePerson = (id) => {
+    if (
+      window.confirm(`Delete ${persons.find((person) => person.id === id)}?`)
+    ) {
+      personService.deletePerson(id);
+      setPersons(persons.filter((person) => person.id !== id));
+    }
   };
 
   const filteredPersons =
@@ -83,7 +106,7 @@ const App = () => {
       />
 
       <h3>Numbers</h3>
-      <Persons persons={filteredPersons} />
+      <Persons persons={filteredPersons} deletePerson={deletePerson} />
     </div>
   );
 };
