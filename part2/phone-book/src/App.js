@@ -83,7 +83,7 @@ const App = () => {
       />
 
       <h3>Numbers</h3>
-      <Persons filteredPersons={filteredPersons} />
+      <Persons persons={filteredPersons} />
     </div>
   );
 };
