@@ -3,14 +3,15 @@ import Persons from './components/Persons';
 import Filter from './components/Filter';
 import PersonForm from './components/PersonForm';
 import personService from './services/person';
-import person from './services/person';
+import Notification from './components/Notification';
 
 const App = () => {
   const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState('');
   const [newNumber, setNewNumber] = useState('');
   const [filter, setFilter] = useState('');
-
+  const [notificationMessage, setNotificationMessage] = useState(null);
+  const [error, setError] = useState(null);
   //get persons list from server
   useEffect(() => {
     personService.getAll().then((initialPersons) => {
@@ -46,6 +47,11 @@ const App = () => {
       setPersons(persons.concat(returnedPerson));
       setNewName('');
       setNewNumber('');
+      setNotificationMessage(`Added ${returnedPerson.name}`);
+      setError(false);
+      setTimeout(() => {
+        setNotificationMessage(null);
+      }, 4000);
     });
   };
 
@@ -58,6 +64,16 @@ const App = () => {
             person.id === returnedPerson.id ? returnedPerson : person
           )
         );
+
+        setNotificationMessage(
+          `${returnedPerson.name} number updated to ${returnedPerson.number}`
+        );
+
+        setError(false);
+
+        setTimeout(() => {
+          setNotificationMessage(null);
+        }, 4000);
       });
   };
 
@@ -74,10 +90,17 @@ const App = () => {
   };
 
   const deletePerson = (id) => {
-    if (
-      window.confirm(`Delete ${persons.find((person) => person.id === id)}?`)
-    ) {
-      personService.deletePerson(id);
+    const name = persons.find((person) => person.id === id).name;
+    if (window.confirm(`Delete ${name}?`)) {
+      personService.deletePerson(id).catch((error) => {
+        setNotificationMessage(
+          `Information of ${name} has already been removed from server`
+        );
+        setError(true);
+        setTimeout(() => {
+          setNotificationMessage(null);
+        }, 5000);
+      });
       setPersons(persons.filter((person) => person.id !== id));
     }
   };
@@ -94,6 +117,8 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={notificationMessage} error={error} />
+
       <Filter onChange={handleFilterChange} value={filter} />
 
       <h3>Add a new</h3>
