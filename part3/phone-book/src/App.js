@@ -65,6 +65,9 @@ const App = () => {
           )
         );
 
+        setNewName('');
+        setNewNumber('');
+
         setNotificationMessage(
           `${returnedPerson.name} number updated to ${returnedPerson.number}`
         );
