@@ -39,7 +39,7 @@ app.get('/info', (request, response) => {
   });
 });
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
   const body = request.body;
 
   const person = new Person({
@@ -47,9 +47,14 @@ app.post('/api/persons', (request, response) => {
     number: body.number,
   });
 
-  person.save().then((returnedPerson) => {
-    response.json(returnedPerson);
-  });
+  person
+    .save()
+    .then((returnedPerson) => {
+      response.json(returnedPerson);
+    })
+    .catch((error) => {
+      next(error);
+    });
 });
 
 app.get('/api/persons', (request, response) => {
@@ -95,6 +100,9 @@ const errorHandler = (error, request, response, next) => {
   console.log(error);
   if (error.name === 'CastError') {
     response.status(400).send({ error: 'maliformed id' });
+  }
+  if (error.name === 'ValidationError') {
+    response.status(400).json({ error: error.message });
   }
 
   next(error);

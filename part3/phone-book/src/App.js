@@ -22,10 +22,6 @@ const App = () => {
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    if (newName.trim() === '' || newNumber.trim() === '') {
-      return;
-    }
-
     let names = persons.map((person) => person.name);
     if (names.includes(newName)) {
       if (
@@ -43,16 +39,25 @@ const App = () => {
       number: newNumber,
     };
 
-    personService.create(newPersonObject).then((returnedPerson) => {
-      setPersons(persons.concat(returnedPerson));
-      setNewName('');
-      setNewNumber('');
-      setNotificationMessage(`Added ${returnedPerson.name}`);
-      setError(false);
-      setTimeout(() => {
-        setNotificationMessage(null);
-      }, 4000);
-    });
+    personService
+      .create(newPersonObject)
+      .then((returnedPerson) => {
+        setPersons(persons.concat(returnedPerson));
+        setNewName('');
+        setNewNumber('');
+        setNotificationMessage(`Added ${returnedPerson.name}`);
+        setError(false);
+        setTimeout(() => {
+          setNotificationMessage(null);
+        }, 4000);
+      })
+      .catch((error) => {
+        setNotificationMessage(error.response.data.error);
+        setError(true);
+        setTimeout(() => {
+          setNotificationMessage(null);
+        }, 4000);
+      });
   };
 
   const updateUserNumber = (person) => {
