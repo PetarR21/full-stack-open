@@ -255,7 +255,7 @@ describe('most blogs', () => {
   });
 });
 
-describe('mostLikes', () => {
+describe('most likes', () => {
   const emptyList = [];
 
   const listWithOneBlog = [

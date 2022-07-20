@@ -1,10 +1,12 @@
 const express = require('express');
+require('express-async-errors');
 const app = express();
 const cors = require('cors');
 const mongoose = require('mongoose');
 const logger = require('./utilis/logger');
 const config = require('./utilis/config');
 const blogsRouter = require('./controllers/blogs');
+const middleware = require('./utilis/middleware');
 
 logger.info('connecting to', config.MONGODB_URI);
 mongoose
@@ -21,5 +23,6 @@ app.use(express.json());
 
 app.use('/api/blogs', blogsRouter);
 
+app.use(middleware.errorHandler);
 
 module.exports = app;
