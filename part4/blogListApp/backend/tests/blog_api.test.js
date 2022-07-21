@@ -3,7 +3,9 @@ const supertest = require('supertest');
 const app = require('../app');
 const api = supertest(app);
 const Blog = require('../models/blog');
+const User = require('../models/user');
 const helper = require('./helper');
+const bcrypt = require('bcrypt');
 
 beforeEach(async () => {
   await Blog.deleteMany({});
@@ -51,7 +53,7 @@ describe('adding new blog', () => {
       .expect(201)
       .expect('Content-Type', /application\/json/);
 
-    const blogsAtEnd = await helper.blogsInDB();
+    const blogsAtEnd = await helper.blogsInDb();
     expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length + 1);
 
     expect(
@@ -79,7 +81,7 @@ describe('adding new blog', () => {
       .expect(201)
       .expect('Content-Type', /application\/json/);
 
-    const blogsAtEnd = await helper.blogsInDB();
+    const blogsAtEnd = await helper.blogsInDb();
     expect(
       blogsAtEnd.map((blog) => {
         return {
@@ -99,19 +101,19 @@ describe('adding new blog', () => {
 
     await api.post('/api/blogs').send(newBlog).expect(400);
 
-    const blogsAtEnd = await helper.blogsInDB();
+    const blogsAtEnd = await helper.blogsInDb();
     expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length);
   });
 });
 
 describe('deleting single blog post', () => {
   test('succeeds with status code 204 if id is valid', async () => {
-    const blogsAtStart = await helper.blogsInDB();
+    const blogsAtStart = await helper.blogsInDb();
     const blogToDelete = blogsAtStart[0];
 
     await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204);
 
-    const blogsAtEnd = await helper.blogsInDB();
+    const blogsAtEnd = await helper.blogsInDb();
     expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length - 1);
     expect(
       blogsAtEnd.map((blog) => {
@@ -141,7 +143,7 @@ describe('updating single blog post', () => {
       .expect(201)
       .expect('Content-Type', /application\/json/);
 
-    const blogs = await helper.blogsInDB();
+    const blogs = await helper.blogsInDb();
     const blogToUpdate = blogs.find((blog) => blog.title === newBlog.title);
 
     const updatedBlog = {
@@ -155,7 +157,7 @@ describe('updating single blog post', () => {
       .expect(200)
       .expect('Content-Type', /application\/json/);
 
-    const blogsAtEnd = await helper.blogsInDB();
+    const blogsAtEnd = await helper.blogsInDb();
     expect(blogsAtEnd).toHaveLength(blogs.length);
     expect(
       blogsAtEnd.map((blog) => {
@@ -168,6 +170,146 @@ describe('updating single blog post', () => {
       })
     ).toContainEqual(updatedBlog);
   }, 20000);
+});
+
+describe('when there is initially one user in db', () => {
+  beforeEach(async () => {
+    await User.deleteMany({});
+
+    const passwordHash = await bcrypt.hash('secret', 10);
+    const user = new User({ username: 'root', passwordHash });
+
+    await user.save();
+  });
+
+  test('creation succeeds with fresh username', async () => {
+    const usersAtStart = await helper.usersInDb();
+
+    const newUser = {
+      username: 'test',
+      name: 'Test',
+      password: 'testpassword',
+    };
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(201)
+      .expect('Content-Type', /application\/json/);
+
+    const usersAtEnd = await helper.usersInDb();
+    expect(usersAtEnd).toHaveLength(usersAtStart.length + 1);
+
+    const usernames = usersAtEnd.map((user) => user.username);
+    expect(usernames).toContain(newUser.username);
+  });
+
+  test('creation fails with proper statuscode and message if username already taken', async () => {
+    const usersAtStart = await helper.usersInDb();
+
+    const newUser = {
+      username: 'root',
+      name: 'Superuser',
+      password: 'salainen',
+    };
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/);
+
+    expect(result.body.error).toContain('username must be unique');
+
+    const usersAtEnd = await helper.usersInDb();
+    expect(usersAtEnd).toEqual(usersAtStart);
+  });
+
+  test('creation fails when username is not provided', async () => {
+    const usersAtStart = await helper.usersInDb();
+
+    const newUser = {
+      name: 'Superuser',
+      password: 'salainen',
+    };
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/);
+
+    expect(result.body.error).toContain('username must be provided');
+
+    const usersAtEnd = await helper.usersInDb();
+    expect(usersAtEnd).toEqual(usersAtStart);
+  });
+
+  test('creation fails when username is not at least 3 characters long', async () => {
+    const usersAtStart = await helper.usersInDb();
+
+    const newUser = {
+      username: 'aa',
+      name: 'Superuser',
+      password: 'salainen',
+    };
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/);
+
+    expect(result.body.error).toContain(
+      'username must be at least 3 characters long'
+    );
+
+    const usersAtEnd = await helper.usersInDb();
+    expect(usersAtEnd).toEqual(usersAtStart);
+  });
+
+  test('creation fails when password is not provided', async () => {
+    const usersAtStart = await helper.usersInDb();
+
+    const newUser = {
+      username: 'superuser',
+      name: 'Superuser',
+    };
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/);
+
+    expect(result.body.error).toContain('password must be provided');
+
+    const usersAtEnd = await helper.usersInDb();
+    expect(usersAtEnd).toEqual(usersAtStart);
+  });
+
+  test('creation fails when password is not at least 3 characters long', async () => {
+    const usersAtStart = await helper.usersInDb();
+
+    const newUser = {
+      username: 'superuser',
+      name: 'Superuser',
+      password: 'sa',
+    };
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/);
+
+    expect(result.body.error).toContain(
+      'password must be at least 3 characters long'
+    );
+
+    const usersAtEnd = await helper.usersInDb();
+    expect(usersAtEnd).toEqual(usersAtStart);
+  });
 });
 
 afterAll(() => {
