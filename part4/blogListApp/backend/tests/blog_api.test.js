@@ -38,8 +38,27 @@ describe('getting blogs', () => {
   });
 });
 
-describe('adding new blog', () => {
-  test('a valid blog can be added', async () => {
+describe('adding a new blog', () => {
+  let headers;
+
+  beforeEach(async () => {
+    await User.deleteMany({});
+
+    const initialUser = {
+      username: 'root',
+      name: 'root',
+      password: '11111',
+    };
+
+    await api.post('/api/users').send(initialUser);
+    const result = await api
+      .post('/api/login')
+      .send({ username: initialUser.username, password: initialUser.password });
+
+    headers = { Authorization: 'bearer ' + result.body.token };
+  }, 100000);
+
+  test('a valid blog can be added if valid user token is provided', async () => {
     const newBlog = {
       title: 'Blog X',
       author: 'Author X',
@@ -50,6 +69,7 @@ describe('adding new blog', () => {
     await api
       .post('/api/blogs')
       .send(newBlog)
+      .set(headers)
       .expect(201)
       .expect('Content-Type', /application\/json/);
 
@@ -78,6 +98,7 @@ describe('adding new blog', () => {
     await api
       .post('/api/blogs')
       .send(newBlog)
+      .set(headers)
       .expect(201)
       .expect('Content-Type', /application\/json/);
 
@@ -99,7 +120,7 @@ describe('adding new blog', () => {
       author: 'AuthorX',
     };
 
-    await api.post('/api/blogs').send(newBlog).expect(400);
+    await api.post('/api/blogs').send(newBlog).set(headers).expect(400);
 
     const blogsAtEnd = await helper.blogsInDb();
     expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length);
@@ -107,14 +128,46 @@ describe('adding new blog', () => {
 });
 
 describe('deleting single blog post', () => {
+  beforeEach(async () => {
+    await User.deleteMany({});
+    await Blog.deleteMany({});
+
+    const initialUser = {
+      username: 'root',
+      name: 'root',
+      password: '11111',
+    };
+
+    await api.post('/api/users').send(initialUser);
+    const result = await api
+      .post('/api/login')
+      .send({ username: initialUser.username, password: initialUser.password });
+
+    headers = { Authorization: 'bearer ' + result.body.token };
+
+    const newBlog = {
+      title: 'Blog X',
+      author: 'Author X',
+      url: 'http://www.testX.com',
+      likes: 12,
+    };
+
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .set(headers)
+      .expect(201)
+      .expect('Content-Type', /application\/json/);
+  });
+
   test('succeeds with status code 204 if id is valid', async () => {
     const blogsAtStart = await helper.blogsInDb();
     const blogToDelete = blogsAtStart[0];
 
-    await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204);
+    await api.delete(`/api/blogs/${blogToDelete.id}`).set(headers).expect(204);
 
     const blogsAtEnd = await helper.blogsInDb();
-    expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length - 1);
+    expect(blogsAtEnd).toHaveLength(0);
     expect(
       blogsAtEnd.map((blog) => {
         return {
@@ -129,6 +182,25 @@ describe('deleting single blog post', () => {
 });
 
 describe('updating single blog post', () => {
+  let headers;
+
+  beforeEach(async () => {
+    await User.deleteMany({});
+
+    const initialUser = {
+      username: 'root',
+      name: 'root',
+      password: '11111',
+    };
+
+    await api.post('/api/users').send(initialUser);
+    const result = await api
+      .post('/api/login')
+      .send({ username: initialUser.username, password: initialUser.password });
+
+    headers = { Authorization: 'bearer ' + result.body.token };
+  }, 100000);
+
   test('succesfully updates blog', async () => {
     const newBlog = {
       title: 'Blog X',
@@ -140,6 +212,7 @@ describe('updating single blog post', () => {
     await api
       .post('/api/blogs')
       .send(newBlog)
+      .set(headers)
       .expect(201)
       .expect('Content-Type', /application\/json/);
 
@@ -154,6 +227,7 @@ describe('updating single blog post', () => {
     await api
       .put(`/api/blogs/${blogToUpdate.id}`)
       .send(updatedBlog)
+      .set(headers)
       .expect(200)
       .expect('Content-Type', /application\/json/);
 
